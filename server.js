@@ -21,10 +21,15 @@ const QRCode = require('qrcode');
 // Import Service Fonnte & Supabase
 const { sendWhatsAppMessage } = require('./src/services/fonnteService');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    realtime: {
+        transport: ws
+    }
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
