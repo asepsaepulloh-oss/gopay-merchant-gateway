@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Dokumentasi - Webhook Payment SaaS</title>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        body { font-family: 'Outfit', sans-serif; overflow-x: hidden; }
+        #dashboard-container { display: flex; width: 100vw; height: 100vh; overflow: hidden; position: relative; z-index: 10; }
+        
+        .sidebar { min-width: 260px; max-width: 260px; background: rgba(13, 17, 28, 0.65); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-right: 1px solid rgba(255,255,255,0.08); color: #fff; display: flex; flex-direction: column; }
+        .sidebar .brand { padding: 20px; text-align: center; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .sidebar .nav { padding: 15px 10px; display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.7); padding: 12px 16px; border-radius: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .top-navbar { background: rgba(13, 17, 28, 0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .content-body { padding: 30px 25px; }
+        
+        pre { background: #0b0f19 !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 8px !important; padding: 15px; color: #a5b4fc !important; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; overflow-x: auto; }
+        .http-method { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin-right: 8px; display: inline-block; }
+        .method-post { background: #15803d; color: #fff; }
+        .method-get { background: #1d4ed8; color: #fff; }
+        
+        .nav-tabs .nav-link { color: #fff; border: 1px solid transparent; background: rgba(255,255,255,0.05); margin-right: 4px; border-radius: 6px 6px 0 0; font-weight: bold; font-size: 0.82rem; }
+        .nav-tabs .nav-link.active { color: #22d3ee !important; background: #0b0f19; border-color: rgba(255,255,255,0.1) rgba(255,255,255,0.1) transparent; }
+        .tab-content { border: 1px solid rgba(255,255,255,0.1); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; background: rgba(0,0,0,0.1); }
+        
+        .sky-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%); }
+    </style>
+</head>
+<body>
+    <div class="sky-bg">
+        <div class="stars"></div>
+    </div>
+
+    <div id="dashboard-container">
+        <!-- Sidebar Panel -->
+        <div class="sidebar">
+            <div class="brand">
+                <i class="fas fa-wallet text-info"></i> <span>Payment SaaS</span>
+            </div>
+            <ul class="nav">
+                <li><a href="/gateway" class="nav-link"><i class="fas fa-arrow-left"></i> Kembali ke Panel</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="top-navbar text-white">
+                <h4 class="mb-0 fw-bold"><i class="fas fa-book text-info me-2"></i>DOKUMENTASI INTEGRASI API & WEBHOOK</h4>
+                <span class="badge bg-info">Versi 2.0.0</span>
+            </div>
+            
+            <div class="content-body text-white">
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h3 class="text-info fw-bold mb-3"><i class="fas fa-key me-2"></i>Autentikasi & Integrasi API Key</h3>
+                    <p class="opacity-75">Setiap request ke API sistem (misalnya untuk generate QRIS dinamis) wajib menyertakan kredensial API Key merchant di dalam header HTTP request berikut untuk menjamin keamanan autentikasi:</p>
+                    <pre>x-api-key: [Public API Key Anda (pk_...)]
+x-secret-key: [Secret API Key Anda (sk_...)]</pre>
+                    <div class="alert alert-warning bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning mb-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i> <strong>Keamanan Kunci Rahasia:</strong> Kunci Rahasia (`x-secret-key`) dienkripsi di server menggunakan hash Bcrypt yang sangat aman. Jangan pernah membagikan atau membocorkan kunci rahasia ini di kode client-side (frontend) Anda. Selalu lakukan request API dari server backend Anda.
+                    </div>
+
+                    <h5 class="text-info fw-bold mt-4"><i class="fas fa-shield-alt me-2"></i>Isolasi Multi-Merchant (Pencegahan Tabrakan Transaksi)</h5>
+                    <p class="opacity-75 mb-0">Untuk memastikan transaksi antar merchant bekerja secara independen tanpa risiko saling menimpa satu sama lain, sistem kami menerapkan mekanisme isolasi data berikut:</p>
+                    <ul class="opacity-75 mt-2">
+                        <li><strong>Identifikasi Berdasarkan Kunci:</strong> Setiap request API diverifikasi secara aman menggunakan pasangan kunci. Server otomatis memetakan transaksi ke ID Merchant yang unik dan menyimpannya secara terisolasi.</li>
+                        <li><strong>Isolasi Webhook Forwarder:</strong> Tautan target forwarder HP Anda memiliki parameter ID khusus, yaitu <code>/api/webhook/payment/[MERCHANT_ID]</code>. Hal ini menjamin bahwa notifikasi e-wallet dari ponsel Anda <strong>hanya akan dicocokkan</strong> dengan transaksi pending milik akun merchant Anda sendiri, bukan milik merchant lain.</li>
+                        <li><strong>Duplikasi Nominal Aman:</strong> Bahkan jika dua merchant berbeda membuat tagihan dengan nominal dasar yang sama persis di detik yang sama, sistem tidak akan mengalami tabrakan data (collision) karena sistem memisahkan pencarian status berdasarkan filter ID Merchant yang terisolasi.</li>
+                    </ul>
+                </div>
+
+                <!-- SEKSI STATUS PEMBAYARAN & SIKLUS HIDUP -->
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h3 class="text-info fw-bold mb-3"><i class="fas fa-sync me-2"></i>Siklus Hidup & Status Pembayaran</h3>
+                    <p class="opacity-75">Sistem payment gateway ini menggunakan siklus hidup transaksi dengan status berikut:</p>
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-4">
+                            <div class="bg-dark bg-opacity-35 p-3 rounded h-100 border border-warning border-opacity-10">
+                                <h5 class="text-warning fw-bold"><i class="fas fa-hourglass-half me-2"></i>PENDING</h5>
+                                <p class="small opacity-75 mb-0">Transaksi baru saja dibuat dan menunggu pembayaran dari pelanggan. Pelanggan wajib membayar nominal persis (termasuk 3 digit unik di belakang) sebelum masa kadaluwarsa habis.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-dark bg-opacity-35 p-3 rounded h-100 border border-success border-opacity-10">
+                                <h5 class="text-success fw-bold"><i class="fas fa-check-circle me-2"></i>PAID</h5>
+                                <p class="small opacity-75 mb-0">Pembayaran berhasil dicocokkan (melalui notifikasi forwarder) atau transaksi tidak terduga berhasil dimasukkan. Sistem secara **otomatis & real-time** memicu pengiriman callback webhook ke server Anda.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-dark bg-opacity-35 p-3 rounded h-100 border border-danger border-opacity-10">
+                                <h5 class="text-danger fw-bold"><i class="fas fa-times-circle me-2"></i>CANCELLED</h5>
+                                <p class="small opacity-75 mb-0">Transaksi dibatalkan secara manual oleh merchant atau kedaluwarsa secara otomatis oleh sistem setelah melewati batas menit masa aktif yang diatur pada Pengaturan SaaS.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ENDPOINT 1: GENERATE QRIS -->
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h4 class="fw-bold mb-3 d-flex align-items-center">
+                        <span class="http-method method-post">POST</span> /api/payment/generate-qris
+                    </h4>
+                    <p class="opacity-75">Membuat tagihan QRIS dinamis baru dengan sistem kode unik acak otomatis. Dana pembayaran langsung dialokasikan 100% ke akun QRIS merchant bersangkutan.</p>
+                    
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Request Body (JSON)</h6>
+                            <pre>{
+  "amount": 100000,
+  "referenceId": "INV-9921820",
+  "codeLen": 3 // Opsional: 2, 3, atau 4 digit (override setting global)
+}</pre>
+                            <h6 class="text-info mb-2">Response Sukses (JSON)</h6>
+                            <pre>{
+  "success": true,
+  "trxId": "d3b07384-d113-4a1d-a5a6-0f72fbc62744",
+  "referenceId": "INV-9921820",
+  "amountBase": 100000,
+  "uniqueCode": 247,
+  "totalAmount": 100247,
+  "qrisString": "00020101021226610014COM...",
+  "qrisImage": "data:image/png;base64,iVBORw0..."
+}</pre>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Contoh Integrasi Kode</h6>
+                            <nav>
+                                <div class="nav nav-tabs" id="nav-tab-gen" role="tablist">
+                                    <button class="nav-link active" id="js-gen-tab" data-bs-toggle="tab" data-bs-target="#js-gen" type="button" role="tab">Node.js</button>
+                                    <button class="nav-link" id="php-gen-tab" data-bs-toggle="tab" data-bs-target="#php-gen" type="button" role="tab">PHP</button>
+                                </div>
+                            </nav>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="js-gen" role="tabpanel">
+                                    <pre style="font-size: 0.75rem; margin-bottom:0;">const fetch = require('node-fetch');
+
+async function createInvoice() {
+    const res = await fetch('https://gateway.com/api/payment/generate-qris', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'pk_your_public_key',
+            'x-secret-key': 'sk_your_secret_key'
+        },
+        body: JSON.stringify({
+            amount: 100000,
+            referenceId: 'INV-9921820'
+        })
+    });
+    const data = await res.json();
+    if (data.success) {
+        console.log("QRIS dinamis dibuat:", data.qrisString);
+        // Tampilkan gambar base64 di HTML:
+        // imgElement.src = data.qrisImage;
+    }
+}</pre>
+                                </div>
+                                <div class="tab-pane fade" id="php-gen" role="tabpanel">
+                                    <pre style="font-size: 0.75rem; margin-bottom:0;">&lt;?php
+$url = 'https://gateway.com/api/payment/generate-qris';
+$payload = array(
+    'amount' => 100000,
+    'referenceId' => 'INV-9921820'
+);
+
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+    'Content-Type: application/json',
+    'x-api-key: pk_your_public_key',
+    'x-secret-key: sk_your_secret_key'
+));
+
+$response = curl_exec($ch);
+$data = json_decode($response, true);
+if ($data['success']) {
+    echo "Total bayar pelanggan: " . $data['totalAmount'];
+}
+?&gt;</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ENDPOINT 2: CEK STATUS -->
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h4 class="fw-bold mb-3 d-flex align-items-center">
+                        <span class="http-method method-get">GET</span> /api/payment/check
+                    </h4>
+                    <p class="opacity-75">Memeriksa status pembayaran dari invoice transaksi menggunakan `trxId` yang didapatkan dari generate-qris.</p>
+                    
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Query Parameters</h6>
+                            <pre>GET /api/payment/check?trxId=d3b07384-d113-4a1d-a5a6-0f72fbc62744</pre>
+                            
+                            <h6 class="text-info mb-2">Response (JSON)</h6>
+                            <pre>{
+  "success": true,
+  "status": "PAID", -- PENDING, PAID, CANCELLED
+  "trxId": "d3b07384-d113-4a1d-a5a6-0f72fbc62744",
+  "referenceId": "INV-9921820",
+  "amountBase": 100000,
+  "uniqueCode": 247,
+  "totalAmount": 100247,
+  "paidAt": "2026-07-11T12:00:15.000Z"
+}</pre>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Contoh Real-time Polling (JavaScript)</h6>
+                            <pre>function checkStatus(trxId) {
+    const interval = setInterval(async () => {
+        const res = await fetch(`/api/payment/check?trxId=${trxId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            if (data.status === 'PAID') {
+                clearInterval(interval);
+                alert("Pembayaran lunas! Layanan diaktifkan.");
+                window.location.href = "/thank-you";
+            } else if (data.status === 'CANCELLED') {
+                clearInterval(interval);
+                alert("Transaksi dibatalkan.");
+            }
+        }
+    }, 3000); // Polling per 3 detik
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOKUMENTASI WEBHOOK CALLBACK -->
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h3 class="text-info fw-bold mb-3"><i class="fas fa-network-wired me-2"></i>Webhook Callback & Signature HMAC</h3>
+                    <p class="opacity-75">Begitu transaksi dinyatakan sukses atau lunas (status berubah menjadi <strong>PAID</strong>), server payment gateway kami akan secara **otomatis dan real-time** mengirimkan callback berupa HTTP POST request dengan format JSON ke URL Webhook target yang telah Anda konfigurasikan di Dashboard.</p>
+                    
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Payload Webhook (JSON)</h6>
+                            <pre>{
+  "transaction_id": "d3b07384-d113-4a1d-a5a6-0f72fbc62744",
+  "merchant_id": "8b08216c-31a2-4a0b-99d9-291efab9a771",
+  "amount": 100000,
+  "status": "PAID",
+  "payment_method": "QRIS",
+  "reference": "INV-9921820",
+  "paid_at": "2026-07-11T12:00:15.000Z",
+  "signature": "29acb162fca66e85e2b0..."
+}</pre>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6 class="text-info mb-2">Verifikasi Signature HMAC SHA256 (Server Anda)</h6>
+                            <nav>
+                                <div class="nav nav-tabs" id="nav-tab-web" role="tablist">
+                                    <button class="nav-link active" id="php-web-tab" data-bs-toggle="tab" data-bs-target="#php-web" type="button" role="tab">PHP</button>
+                                    <button class="nav-link" id="js-web-tab" data-bs-toggle="tab" data-bs-target="#js-web" type="button" role="tab">Node.js</button>
+                                </div>
+                            </nav>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="php-web" role="tabpanel">
+                                    <pre style="font-size: 0.75rem; margin-bottom: 0;">&lt;?php
+$secretKey = 'your_webhook_secret_key'; // Dari dashboard
+
+// Ambil input JSON dari request
+$inputRaw = file_get_contents('php://input');
+$payload = json_decode($inputRaw, true);
+
+$receivedSignature = $payload['signature'];
+// Hapus parameter signature sebelum menghitung hash
+unset($payload['signature']);
+
+$calculatedSignature = hash_hmac('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES), $secretKey);
+
+if (hash_equals($calculatedSignature, $receivedSignature)) {
+    // Tanda tangan valid! Proses order merchant Anda aman
+    http_response_code(200);
+    echo "Webhook diproses.";
+} else {
+    // Tanda tangan palsu/tidak valid
+    http_response_code(400);
+    echo "Signature Invalid.";
+}
+?&gt;</pre>
+                                </div>
+                                <div class="tab-pane fade" id="js-web" role="tabpanel">
+                                    <pre style="font-size: 0.75rem; margin-bottom: 0;">const crypto = require('crypto');
+
+app.post('/webhook-handler', (req, res) => {
+    const secretKey = 'your_webhook_secret_key';
+    const payload = req.body;
+    
+    const receivedSignature = payload.signature;
+    delete payload.signature;
+    
+    const calculatedSignature = crypto
+        .createHmac('sha256', secretKey)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+        
+    if (calculatedSignature === receivedSignature) {
+        // Valid!
+        res.status(200).send('SUCCESS');
+    } else {
+        res.status(400).send('Signature Invalid');
+    }
+});</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEKSI DOKUMENTASI ANDROID FORWARDER -->
+                <div class="card glass-panel border-0 mb-4 p-4">
+                    <h3 class="text-warning fw-bold mb-3"><i class="fas fa-mobile-alt me-2"></i>Integrasi Aplikasi Forwarder Notifikasi Android</h3>
+                    <p class="opacity-75">Sistem ini membutuhkan aplikasi perantara di ponsel Android Anda untuk memforward notifikasi pembayaran (GoPay, OVO, DANA, SeaBank, dll.) secara real-time ke server gateway Anda.</p>
+                    
+                    <h5 class="text-info mb-2">Metode 1: Mengirimkan Payload via POST (JSON)</h5>
+                    <h6 class="text-white-50 small fw-bold">URL Endpoint Target:</h6>
+                    <pre>POST https://[domain_anda]/api/webhook/payment/[MERCHANT_ID]</pre>
+                    <p class="small opacity-75">Ganti `[MERCHANT_ID]` dengan ID Merchant khusus Anda. Payload JSON wajib dikirimkan dengan struktur berikut:</p>
+                    <pre>{
+  "title": "Pembayaran Berhasil",
+  "text": "GoPay Rp 15.000 dari John Doe",
+  "timestamp": 1718100250000
+}</pre>
+ 
+                    <h5 class="text-info mt-4 mb-2">Metode 2: Mengirimkan Payload via GET (Query String)</h5>
+                    <p class="opacity-75">Jika aplikasi forwarder Anda dikonfigurasi untuk mengirim request metode GET, gunakan format URL berikut:</p>
+                    <h6 class="text-white-50 small fw-bold">URL Endpoint Target:</h6>
+                    <pre>GET https://[domain_anda]/api/webhook/payment/[MERCHANT_ID]?name=[E_WALLET_NAME]&pkg=[PACKAGE_NAME]&text=[MESSAGE_CONTENT]&sign=[SIGNATURE]</pre>
+                    
+                    <h6 class="text-white-50 small fw-bold">Penjelasan Parameter Query GET:</h6>
+                    <ul>
+                        <li><code>name</code>: Nama aplikasi e-wallet (contoh: <code>dana</code>, <code>ovo</code>, <code>gopay</code>, <code>seabank</code>).</li>
+                        <li><code>pkg</code>: Nama package Android (contoh: <code>id.dana</code>, <code>ovo.id</code>, <code>com.gojek.gopay</code>, <code>id.co.bankbkemobile.digitalbank</code>).</li>
+                        <li><code>text</code>: Isi pesan SMS atau notifikasi pembayaran (contoh: <code>baru saja Kirim DANA ke kamu Rp50.000</code>).</li>
+                        <li><code>sign</code>: Tanda pengenal/signature keamanan webhook (wajib bernilai: <code>h3ruc0d3</code>).</li>
+                    </ul>
+ 
+                    <div class="alert alert-info bg-info bg-opacity-10 border border-info border-opacity-25 text-info mb-0 mt-3">
+                        <i class="fas fa-info-circle me-1"></i> Sistem gateway akan mengekstrak nominal terkecil yang berawalan <strong>Rp</strong> dari parameter pesan notifikasi secara otomatis demi menghindari duplikasi saldo baru, lalu mencocokkannya ke database secara instan dan mengubah status transaksi menjadi <strong>PAID</strong> secara real-time.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

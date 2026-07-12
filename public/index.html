@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Pembayaran QRIS SaaS - Webhook Callback</title>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        body { font-family: 'Outfit', sans-serif; overflow-x: hidden; }
+        .sky-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%); }
+        
+        .main-hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; padding: 40px 20px; }
+        
+        /* Auth Container Card Glassmorphism */
+        .auth-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); width: 100%; max-width: 480px; transition: all 0.3s ease; }
+        .auth-card:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 20px 60px rgba(34, 211, 238, 0.15); }
+        
+        .nav-pills .nav-link { color: rgba(255,255,255,0.6); font-weight: 600; border-radius: 12px; padding: 10px 20px; transition: all 0.3s ease; }
+        .nav-pills .nav-link.active { background: rgba(34, 211, 238, 0.15) !important; color: #22d3ee !important; border: 1px solid rgba(34, 211, 238, 0.3); }
+        
+        .feature-badge { background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); color: #22d3ee; padding: 6px 14px; border-radius: 30px; font-weight: bold; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
+        
+        .hidden { display: none !important; }
+        
+        /* Form Inputs */
+        .glass-input { background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255,255,255,0.08) !important; color: #fff !important; border-radius: 12px !important; padding: 12px 16px !important; transition: all 0.3s ease !important; }
+        .glass-input:focus { border-color: #22d3ee !important; box-shadow: 0 0 10px rgba(34, 211, 238, 0.25) !important; }
+        .glass-input-group-text { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.6) !important; border-radius: 12px 0 0 12px !important; }
+        
+        /* Buttons */
+        .btn-glow { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: #fff; border: none; font-weight: bold; border-radius: 12px; padding: 12px 24px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3); }
+        .btn-glow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5); color: #fff; }
+        .btn-glow:disabled { opacity: 0.6; transform: none; box-shadow: none; }
+    </style>
+</head>
+<body>
+    <!-- Latar Belakang Jagat Raya Malam Bintang -->
+    <div class="sky-bg">
+        <div class="stars"></div>
+    </div>
+
+    <!-- Container Toast Notifikasi -->
+    <div class="toast-container position-fixed top-0 end-0 p-4" style="z-index: 1080;">
+        <div id="appToast" class="toast glass-panel border border-light border-opacity-25" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-dark bg-opacity-25 text-white border-bottom border-light border-opacity-10">
+                <i id="toastIcon" class="fas fa-info-circle me-2"></i>
+                <strong class="me-auto" id="toastTitle">Sistem</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body text-white" id="toastMessage">Pesan notifikasi.</div>
+        </div>
+    </div>
+
+    <div class="main-hero">
+        <div class="container">
+            <div class="row align-items-center justify-content-center">
+                <!-- Info Kiri: Penjelasan Platform SaaS -->
+                <div class="col-lg-6 text-white text-center text-lg-start mb-5 mb-lg-0 px-4">
+                    <span class="feature-badge mb-3"><i class="fas fa-wallet animate-pulse"></i> SaaS Payment Webhook</span>
+                    <h1 class="display-4 fw-bold text-gradient mb-3">Webhook Gateway QRIS Dinamis</h1>
+                    <p class="lead opacity-80 mb-4">Terima notifikasi webhook instan dan otomatis langsung dari e-wallet/rekening Anda ke server platform merchant Anda dengan integrasi kode QRIS dinamis.</p>
+                    
+                    <div class="row g-4 mt-2">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-info bg-opacity-10 border border-info border-opacity-20 text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                                <div class="text-start">
+                                    <h6 class="fw-bold mb-0 text-white">QRIS Kustom</h6>
+                                    <small class="opacity-60 text-white-50">Upload QR Merchant Anda</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-success bg-opacity-10 border border-success border-opacity-20 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="text-start">
+                                    <h6 class="fw-bold mb-0 text-white">0% Potongan Fee</h6>
+                                    <small class="opacity-60 text-white-50">Settlement 100% langsung</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Kanan: Autentikasi / Register / Login -->
+                <div class="col-lg-6 d-flex justify-content-center px-2">
+                    <div class="auth-card">
+                        <!-- Box Tabs Login & Register -->
+                        <div id="auth-tab-headers" class="mb-4">
+                            <ul class="nav nav-pills nav-fill bg-dark bg-opacity-40 p-1 rounded-3">
+                                <li class="nav-item">
+                                    <button class="nav-link active" id="tab-login" onclick="switchAuthMode('login')"><i class="fas fa-sign-in-alt me-1"></i> Masuk</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" id="tab-register" onclick="switchAuthMode('register')"><i class="fas fa-user-plus me-1"></i> Daftar</button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Form 1: LOGIN -->
+                        <form id="form-login" class="d-flex flex-column gap-3">
+                            <h4 class="text-white fw-bold mb-1">Masuk ke Portal</h4>
+                            <p class="text-white-50 small mb-2">Gunakan nomor WhatsApp terdaftar dan password Anda.</p>
+                            
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Nomor WhatsApp</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                    <input type="text" class="form-control glass-input" id="login-wa" placeholder="Contoh: 08123456789" required>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between">
+                                    <label class="text-white-50 small mb-1 fw-bold">Password</label>
+                                    <a href="#" onclick="switchAuthMode('forgot')" class="text-info small text-decoration-none">Lupa password?</a>
+                                </div>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control glass-input" id="login-pass" placeholder="Password Anda" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-glow w-100 py-3 mt-2" id="btnLoginSubmit">
+                                <i class="fas fa-paper-plane me-1"></i> Kirim OTP
+                            </button>
+                        </form>
+
+                        <!-- Form 2: VERIFIKASI OTP -->
+                        <form id="form-otp" class="d-flex flex-column gap-3 hidden">
+                            <h4 class="text-white fw-bold mb-1">Verifikasi OTP</h4>
+                            <p class="text-white-50 small mb-2">Kode OTP telah dikirim melalui WhatsApp ke nomor <strong id="display-otp-wa" class="text-info"></strong>.</p>
+                            
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Kode OTP 6 Digit</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-key"></i></span>
+                                    <input type="text" class="form-control glass-input text-center fw-bold" id="otp-code" placeholder="------" maxlength="6" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-glow w-100 py-3 mt-2" id="btnOtpSubmit">
+                                <i class="fas fa-check-circle me-1"></i> Verifikasi & Masuk
+                            </button>
+                            <button type="button" onclick="switchAuthMode('login')" class="btn btn-outline-light w-100 py-2">
+                                <i class="fas fa-arrow-left me-1"></i> Kembali ke Login
+                            </button>
+                        </form>
+
+                        <!-- Form 3: DAFTAR -->
+                        <form id="form-register" class="d-flex flex-column gap-3 hidden">
+                            <h4 class="text-white fw-bold mb-1">Daftar Akun Baru</h4>
+                            <p class="text-white-50 small mb-2">Buat akun untuk menghubungkan QRIS Anda ke webhook.</p>
+                            
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Nama Merchant / Toko</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-store"></i></span>
+                                    <input type="text" class="form-control glass-input" id="reg-name" placeholder="Nama Merchant Anda" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Nomor WhatsApp Merchant</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                    <input type="text" class="form-control glass-input" id="reg-wa" placeholder="Contoh: 08123456789" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control glass-input" id="reg-email" placeholder="Contoh: merchant@toko.com" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control glass-input" id="reg-pass" placeholder="Minimal 6 karakter" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-glow w-100 py-3 mt-2" id="btnRegisterSubmit">
+                                <i class="fas fa-user-plus me-1"></i> Daftar Sekarang
+                            </button>
+                        </form>
+
+                        <!-- Form 4: LUPA PASSWORD -->
+                        <form id="form-forgot" class="d-flex flex-column gap-3 hidden">
+                            <h4 class="text-white fw-bold mb-1">Reset Password</h4>
+                            <p class="text-white-50 small mb-2">Tautan untuk mereset password Anda akan dikirim ke nomor WhatsApp.</p>
+                            
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Nomor WhatsApp Terdaftar</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                    <input type="text" class="form-control glass-input" id="forgot-wa" placeholder="Contoh: 08123456789" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-glow w-100 py-3 mt-2" id="btnForgotSubmit">
+                                <i class="fas fa-paper-plane me-1"></i> Kirim Tautan Reset
+                            </button>
+                            <button type="button" onclick="switchAuthMode('login')" class="btn btn-outline-light w-100 py-2">
+                                <i class="fas fa-arrow-left me-1"></i> Kembali ke Login
+                            </button>
+                        </form>
+
+                        <!-- Form 5: RESET PASSWORD FORM (TOKEN DI URL) -->
+                        <form id="form-reset" class="d-flex flex-column gap-3 hidden">
+                            <h4 class="text-white fw-bold mb-1">Password Baru</h4>
+                            <p class="text-white-50 small mb-2">Buat password baru yang aman untuk akun Anda.</p>
+                            
+                            <div>
+                                <label class="text-white-50 small mb-1 fw-bold">Password Baru</label>
+                                <div class="input-group">
+                                    <span class="input-group-text glass-input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control glass-input" id="reset-pass" placeholder="Password baru" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-glow w-100 py-3 mt-2" id="btnResetSubmit">
+                                <i class="fas fa-check me-1"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>
