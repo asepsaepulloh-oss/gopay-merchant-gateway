@@ -108,7 +108,7 @@ function rateLimiter(keyPrefix, limit, windowMs) {
         const limitKey = `${keyPrefix}-${ip}`;
         const now = Date.now();
         const requestLog = rateLimitMap.get(limitKey) || [];
-        
+
         const activeRequests = requestLog.filter(time => now - time < windowMs);
         if (activeRequests.length >= limit) {
             return res.status(429).json({
@@ -116,7 +116,7 @@ function rateLimiter(keyPrefix, limit, windowMs) {
                 message: 'Terlalu banyak permintaan (Rate limit exceeded). Silakan coba sesaat lagi.'
             });
         }
-        
+
         activeRequests.push(now);
         rateLimitMap.set(limitKey, activeRequests);
         next();
@@ -143,7 +143,7 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: { fileSize: 3 * 1024 * 1024 }, // 3MB limit
     fileFilter: fileFilter
@@ -155,7 +155,7 @@ const upload = multer({
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    
+
     if (!token) return res.status(401).json({ success: false, message: 'Akses ditolak. Token tidak ditemukan.' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -247,20 +247,20 @@ function convertCRC16(str) {
 function qrisConverter(qty, qrisStr) {
     try {
         let qris = qrisStr.slice(0, -4);
-        
+
         // Pastikan tag 01 (point of initiation) bernilai 12 (dynamic)
         qris = qris.replace("010211", "010212");
-        
+
         // Cari index dari "5802ID"
         const index = qris.indexOf("5802ID");
         if (index === -1) {
             throw new Error("Format string QRIS Merchant Anda tidak memiliki kode negara 5802ID.");
         }
-        
+
         const qtyStr = Math.round(Number(qty)).toString();
         const lenStr = qtyStr.length.toString().padStart(2, '0');
         const uang = "54" + lenStr + qtyStr; // Tag 54 (Amount)
-        
+
         // Kita sisipkan tag 54 tepat sebelum "5802ID"
         let fix = qris.substring(0, index) + uang + qris.substring(index);
         fix += convertCRC16(fix);
@@ -316,10 +316,10 @@ async function ensureMerchantProfile(user) {
             .insert({ user_id: user.id, name: 'Toko ' + user.whatsapp_number, email: '' })
             .select()
             .single();
-            
+
         if (mErr || !newMerchant) throw mErr || new Error('Gagal membuat profile merchant otomatis.');
         merchant = newMerchant;
-        
+
         // Buat API Keys default
         const pubKey = 'pk_' + crypto.randomBytes(16).toString('hex');
         const secKeyStr = 'sk_' + crypto.randomBytes(24).toString('hex');
@@ -351,7 +351,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     try {
         const cleanNumber = normalizePhoneNumber(whatsappNumber);
-        
+
         // Cek jika nomor whatsapp sudah terdaftar
         const { data: existingUser } = await supabase
             .from('users')
@@ -418,7 +418,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login Tahap 1: Verifikasi Password & Kirim OTP WA (Rate limited)
-app.post('/api/auth/login', rateLimiter('login-otp', 2, 60 * 1000), async (req, res) => {
+app.post('/api/auth/login', rateLimiter('login', 5, 60 * 1000), async (req, res) => {
     const { whatsappNumber, password } = req.body;
     if (!whatsappNumber || !password) {
         return res.status(400).json({ success: false, message: 'WhatsApp dan Password wajib diisi.' });
@@ -426,7 +426,7 @@ app.post('/api/auth/login', rateLimiter('login-otp', 2, 60 * 1000), async (req, 
 
     try {
         const cleanNumber = normalizePhoneNumber(whatsappNumber);
-        
+
         const { data: user, error } = await supabase
             .from('users')
             .select('*')
@@ -442,32 +442,28 @@ app.post('/api/auth/login', rateLimiter('login-otp', 2, 60 * 1000), async (req, 
             return res.status(401).json({ success: false, message: 'Nomor WhatsApp atau password salah.' });
         }
 
-        // Generate OTP 6 digit
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 menit
+        const merchant = await ensureMerchantProfile(user);
 
-        await supabase.from('otp_codes').insert({
-            whatsapp_number: cleanNumber,
-            code: otpCode,
-            expired_at: expiresAt
-        });
+        const tokenPayload = {
+            id: user.id,
+            whatsappNumber: user.whatsapp_number,
+            role: user.role,
+            merchantId: merchant.id
+        };
 
-        // Kirim OTP melalui Fonnte
-        const msgText = `[Web Gateway QRIS]\nKode OTP login Anda adalah: *${otpCode}*\nRahasiakan kode ini. Berlaku selama 5 menit.`;
-        const waResult = await sendWhatsAppMessage(cleanNumber, msgText);
+        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1d' });
 
-        if (!waResult.success) {
-            console.error('[Login OTP Error] Gagal mengirim OTP via Fonnte:', waResult.error || waResult.raw);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Gagal mengirimkan OTP ke nomor WhatsApp Anda. Pastikan perangkat Fonnte aktif.',
-                detail: waResult.error || (waResult.raw ? waResult.raw.reason : 'Fonnte API error')
-            });
-        }
+        await createAuditLog(user.id, 'LOGIN', 'Berhasil login menggunakan password', req);
 
         res.json({
             success: true,
-            message: 'Password terverifikasi. Kode OTP telah dikirim ke WhatsApp Anda.'
+            message: 'Login berhasil!',
+            token: token,
+            user: {
+                whatsappNumber: user.whatsapp_number,
+                role: user.role,
+                name: merchant ? merchant.name : ''
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -483,7 +479,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     try {
         const cleanNumber = normalizePhoneNumber(whatsappNumber);
-        
+
         // Cari OTP yang valid
         const { data: otpRecord, error } = await supabase
             .from('otp_codes')
@@ -518,7 +514,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
             role: user.role,
             merchantId: merchant.id
         };
-        
+
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1d' });
 
         await createAuditLog(user.id, 'LOGIN', 'Berhasil login melalui verifikasi OTP WA', req);
@@ -789,19 +785,19 @@ app.post('/api/merchant/qris', authenticateJWT, async (req, res) => {
         if (existingQris) {
             const { error: updateError } = await supabase
                 .from('merchant_qris')
-                .update({ 
-                    qris_string: cleanQrisString, 
-                    original_filename: filename || 'Input Manual Teks' 
+                .update({
+                    qris_string: cleanQrisString,
+                    original_filename: filename || 'Input Manual Teks'
                 })
                 .eq('id', existingQris.id);
             if (updateError) throw updateError;
         } else {
             const { error: insertError } = await supabase
                 .from('merchant_qris')
-                .insert({ 
-                    merchant_id: merchantId, 
-                    qris_string: cleanQrisString, 
-                    original_filename: filename || 'Input Manual Teks' 
+                .insert({
+                    merchant_id: merchantId,
+                    qris_string: cleanQrisString,
+                    original_filename: filename || 'Input Manual Teks'
                 });
             if (insertError) throw insertError;
         }
@@ -890,11 +886,11 @@ app.post('/api/merchant/webhook', authenticateJWT, async (req, res) => {
         } else {
             const { data, error } = await supabase
                 .from('webhook_settings')
-                .insert({ 
-                    merchant_id: req.user.merchantId, 
-                    url: url || '', 
-                    secret_key: crypto.randomBytes(16).toString('hex'), 
-                    is_active: isActive === true 
+                .insert({
+                    merchant_id: req.user.merchantId,
+                    url: url || '',
+                    secret_key: crypto.randomBytes(16).toString('hex'),
+                    is_active: isActive === true
                 })
                 .select()
                 .single();
@@ -1114,7 +1110,7 @@ app.get('/api/merchant/statistics', authenticateJWT, async (req, res) => {
         if (req.user.role === 'admin') {
             const { data: allTrxs } = await supabase.from('transactions').select('*');
             const { count: totalMerchants } = await supabase.from('merchants').select('*', { count: 'exact', head: true });
-            
+
             let adminTotalVol = 0;
             let adminPlatformInc = 0;
             let adminPaidCount = 0;
@@ -1498,7 +1494,7 @@ app.get('/api/payment/transactions/:id', authenticateApiKey, async (req, res) =>
 // --------------------------------------------------------------
 app.all(['/api/webhook/payment', '/api/webhook/payment/:merchantId'], async (req, res) => {
     const { merchantId } = req.params;
-    
+
     // Mendukung baik GET (query parameters) maupun POST (body) dari berbagai aplikasi forwarder
     const name = (req.query.name || req.body.name || req.body.title || '').trim();
     const pkg = (req.query.pkg || req.body.pkg || '').trim();
@@ -1549,7 +1545,7 @@ app.all(['/api/webhook/payment', '/api/webhook/payment/:merchantId'], async (req
 
         if (tErr || !matchedTrx) {
             console.log(`[Webhook] Notifikasi tidak cocok dengan transaksi aktif. Membuat transaksi baru secara realtime untuk Rp ${amountReceived.toLocaleString('id-ID')}.`);
-            
+
             // Resolve merchant ID fallback jika tidak dispesifikasikan
             if (!mId) {
                 const { data: firstMerchant } = await supabase
@@ -1595,10 +1591,10 @@ app.all(['/api/webhook/payment', '/api/webhook/payment/:merchantId'], async (req
             // Update status transaksi aktif yang cocok menjadi PAID
             const { error: updateErr } = await supabase
                 .from('transactions')
-                .update({ 
-                    status: 'PAID', 
-                    paid_at: paidAt, 
-                    payload_raw: { query: req.query, body: req.body } 
+                .update({
+                    status: 'PAID',
+                    paid_at: paidAt,
+                    payload_raw: { query: req.query, body: req.body }
                 })
                 .eq('id', matchedTrx.id);
 
@@ -1636,29 +1632,29 @@ app.all(['/api/webhook/payment', '/api/webhook/payment/:merchantId'], async (req
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(webhookPayload)
             })
-            .then(async (hookRes) => {
-                const responseStatus = hookRes.status;
-                const responseBody = await hookRes.text();
-                
-                await supabase.from('webhook_logs').insert({
-                    transaction_id: targetTrx.id,
-                    payload: webhookPayload,
-                    response_status: responseStatus,
-                    response_body: responseBody.slice(0, 1000),
-                    attempts: 1,
-                    status: hookRes.ok ? 'SUCCESS' : 'FAILED'
+                .then(async (hookRes) => {
+                    const responseStatus = hookRes.status;
+                    const responseBody = await hookRes.text();
+
+                    await supabase.from('webhook_logs').insert({
+                        transaction_id: targetTrx.id,
+                        payload: webhookPayload,
+                        response_status: responseStatus,
+                        response_body: responseBody.slice(0, 1000),
+                        attempts: 1,
+                        status: hookRes.ok ? 'SUCCESS' : 'FAILED'
+                    });
+                })
+                .catch(async (postErr) => {
+                    await supabase.from('webhook_logs').insert({
+                        transaction_id: targetTrx.id,
+                        payload: webhookPayload,
+                        response_status: 500,
+                        response_body: postErr.message,
+                        attempts: 1,
+                        status: 'FAILED'
+                    });
                 });
-            })
-            .catch(async (postErr) => {
-                await supabase.from('webhook_logs').insert({
-                    transaction_id: targetTrx.id,
-                    payload: webhookPayload,
-                    response_status: 500,
-                    response_body: postErr.message,
-                    attempts: 1,
-                    status: 'FAILED'
-                });
-            });
         }
 
         res.json({ success: true, message: 'Webhook diproses dan dicocokkan.' });

@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 2. LOGIN (MENGIRIM OTP)
+    // 2. LOGIN (TANPA OTP / PASSWORD SAJA)
     document.getElementById('form-login')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const whatsappNumber = document.getElementById('login-wa').value;
@@ -139,40 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
             if (data.success) {
-                activeWaNumber = whatsappNumber;
-                document.getElementById('display-otp-wa').textContent = whatsappNumber;
-                
-                showToast('OTP Terkirim', 'Kode OTP 6 digit telah dikirim ke nomor WhatsApp Anda.');
-                switchAuthMode('otp');
-            } else {
-                showToast('Login Gagal', data.message || 'Password atau WhatsApp salah.', false);
-            }
-        } catch (err) {
-            showToast('Error', 'Gagal menghubungi server.', false);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Kirim OTP';
-        }
-    });
-
-    // 3. VERIFIKASI OTP & TERBITKAN TOKEN
-    document.getElementById('form-otp')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const code = document.getElementById('otp-code').value;
-
-        const btn = document.getElementById('btnOtpSubmit');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifikasi...';
-
-        try {
-            const res = await fetch('/api/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ whatsappNumber: activeWaNumber, code })
-            });
-
-            const data = await res.json();
-            if (data.success) {
                 // Simpan token JWT di localStorage
                 localStorage.setItem('jwtToken', data.token);
                 localStorage.setItem('merchantName', data.user.name);
@@ -183,44 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = '/gateway';
                 }, 1000);
             } else {
-                showToast('Verifikasi Gagal', data.message || 'Kode OTP salah.', false);
+                showToast('Login Gagal', data.message || 'Password atau WhatsApp salah.', false);
             }
         } catch (err) {
-            showToast('Error', 'Gagal memverifikasi OTP.', false);
+            showToast('Error', 'Gagal menghubungi server.', false);
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Verifikasi & Masuk';
-        }
-    });
-
-    // 4. LUPA PASSWORD (KIRIM RESET LINK WA)
-    document.getElementById('form-forgot')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const whatsappNumber = document.getElementById('forgot-wa').value;
-
-        const btn = document.getElementById('btnForgotSubmit');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
-
-        try {
-            const res = await fetch('/api/auth/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ whatsappNumber })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                showToast('Sukses', data.message || 'Tautan reset password berhasil dikirim.');
-                switchAuthMode('login');
-            } else {
-                showToast('Gagal', data.message || 'Gagal mengirim link.', false);
-            }
-        } catch (err) {
-            showToast('Error', 'Gagal memproses lupa password.', false);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Kirim Tautan Reset';
+            btn.innerHTML = '<i class="fas fa-sign-in-alt me-1"></i> Masuk';
         }
     });
 
