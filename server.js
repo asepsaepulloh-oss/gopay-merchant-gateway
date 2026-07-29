@@ -357,7 +357,7 @@ app.post('/api/auth/register', async (req, res) => {
             .from('users')
             .select('*')
             .eq('whatsapp_number', cleanNumber)
-            .single();
+            .maybeSingle();
 
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Nomor WhatsApp sudah terdaftar.' });
@@ -370,7 +370,7 @@ app.post('/api/auth/register', async (req, res) => {
             .from('users')
             .insert({ whatsapp_number: cleanNumber, password_hash: passwordHash })
             .select()
-            .single();
+            .msingle();
 
         if (uErr || !newUser) throw uErr || new Error('Gagal membuat user.');
 
