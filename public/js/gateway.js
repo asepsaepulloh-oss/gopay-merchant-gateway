@@ -653,8 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const copyBtn = document.getElementById('btnCopySecretKey');
                     if (copyBtn) copyBtn.removeAttribute('disabled');
                     
-                    alert(`Rotasi API Key Berhasil!\n\nKUNCI API RAHASIA BARU (sk_):\n${data.secretKey}\n\nHarap catat dan simpan Secret Key ini sekarang. Kunci ini didekripsi sekali ini saja demi keamanan.`);
-                    showToast('Sukses', 'Kunci API berhasil dirotasi.');
+                    showToast('Sukses', 'Rotasi Kunci API Berhasil! Secret Key baru telah dimasukkan ke kolom input dan siap disalin.');
                 }
             } catch (err) {
                 showToast('Error', 'Gagal merotasi API keys.', false);
