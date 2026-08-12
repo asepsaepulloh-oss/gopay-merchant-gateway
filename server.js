@@ -370,7 +370,7 @@ app.post('/api/auth/register', async (req, res) => {
             .from('users')
             .insert({ whatsapp_number: cleanNumber, password_hash: passwordHash })
             .select()
-            .msingle();
+            .single();
 
         if (uErr || !newUser) throw uErr || new Error('Gagal membuat user.');
 
