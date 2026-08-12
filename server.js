@@ -372,16 +372,28 @@ app.post('/api/auth/register', async (req, res) => {
             .select()
             .single();
 
-        if (uErr || !newUser) throw uErr || new Error('Gagal membuat user.');
+        if (uErr) {
+            console.error('[Supabase User Insert Error]:', uErr);
+            return res.status(500).json({ success: false, message: 'Gagal membuat user di database.', error: uErr.message || uErr });
+        }
+        if (!newUser) {
+            return res.status(500).json({ success: false, message: 'Gagal membuat user: Data kosong dikembalikan dari database.' });
+        }
 
         // 2. Insert merchant profile
         const { data: newMerchant, error: mErr } = await supabase
             .from('merchants')
-            .insert({ user_id: newUser.id, name, email })
+            .insert({ user_id: newUser.id, name, email: email || '' })
             .select()
             .single();
 
-        if (mErr || !newMerchant) throw mErr || new Error('Gagal membuat merchant.');
+        if (mErr) {
+            console.error('[Supabase Merchant Insert Error]:', mErr);
+            return res.status(500).json({ success: false, message: 'Gagal membuat profil merchant.', error: mErr.message || mErr });
+        }
+        if (!newMerchant) {
+            return res.status(500).json({ success: false, message: 'Gagal membuat merchant: Data kosong dikembalikan dari database.' });
+        }
 
         // 3. Generate API Keys default
         const pubKey = 'pk_' + crypto.randomBytes(16).toString('hex');
@@ -413,7 +425,8 @@ app.post('/api/auth/register', async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        console.error('[CRITICAL REGISTER EXCEPTION]:', err);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan sistem internal.', error: err.message });
     }
 });
 
@@ -1676,11 +1689,10 @@ server.on('error', (err) => {
         console.error(`===============================================`);
         console.error(`❌ Gagal memulai server: Port ${PORT} sudah digunakan!`);
         console.error(`💡 Tips: Silakan matikan proses node lain yang sedang berjalan`);
-        console.error(`   atau ubah PORT di file .env Anda.`);
+        console.error(`    atau ubah PORT di file .env Anda.`);
         console.error(`===============================================`);
     } else {
         console.error('❌ Terjadi kesalahan pada server:', err.message);
     }
     process.exit(1);
 });
-
